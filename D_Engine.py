@@ -3,11 +3,13 @@ from sys import exit
 import math as m
 
 SCREEN_COLOR ="#171717"
-SCREEN_SIZE = (1080,720)
-LINE_COLOR = "A9DDD6"
+SCREEN_WIDTH = 1080
+SCREEN_HEIGHT = 720
+SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
+LINE_COLOR = (255,255,255)
 
 # Defining Functions and Objects
-A = SCREEN_SIZE[0]/SCREEN_SIZE[1]
+A = SCREEN_WIDTH/SCREEN_HEIGHT
 FOV = 90.0 # in Degrees
 Zn = 0.1
 Zf = 1000.0
@@ -27,19 +29,12 @@ class Vector():
 
 class Triangle():
     def __init__(self,vectors) -> None:
-        self.v = vectors
+
+        self.v = list(vectors)
 
 class Object_3D():
     def __init__(self,triangles) -> None:
         self.triangles = triangles
-
-# def Mat_mul_3D(MatA,MatB,Mat_result) -> None:
-
-#     for i in range(0,4):
-#         temp=0
-#         for j in range (0,4):
-#            temp += MatA[4*i+j]*MatB[j]
-#         Mat_result.append(temp)
 
 def MatVectorMul(i,m,o) -> None:# i is input vector , m is 4x4 matrix to be multiplied , o is the output vector
     
@@ -79,22 +74,54 @@ while True:
         vec1 = Vector(0,0,0)
         vec2 = Vector(0,0,1)
         vec3 = Vector(0,1,0)
+    
 
-        tri1 = Triangle((vec1,vec2,vec3))
-        tri2 = Triangle((vec3,vec2,vec1))
+        tri1 = Triangle((Vector(0,0,0),Vector(0,1,0),Vector(1,1,0)))
+        tri2 = Triangle((Vector(0,0,0),Vector(1,1,0),Vector(1,0,0)))
+        tri3 = Triangle((Vector(1,0,0),Vector(1,1,0),Vector(1,1,1)))
+        tri4 = Triangle((Vector(1,0,0),Vector(1,1,1),Vector(1,0,1)))
+        tri5 = Triangle((Vector(1,0,1),Vector(1,1,1),Vector(0,1,1)))
+        tri6 = Triangle((Vector(1,0,1),Vector(0,1,1),Vector(0,0,1)))
+        tri7 = Triangle((Vector(0,0,1),Vector(0,1,1),Vector(0,1,0)))
+        tri8 = Triangle((Vector(0,0,1),Vector(0,1,0),Vector(0,0,0)))
+        tri9 = Triangle((Vector(0,1,0),Vector(0,1,1),Vector(1,1,1)))
+        tri10 = Triangle((Vector(0,1,0),Vector(1,1,1),Vector(1,1,0)))
+        tri11 = Triangle((Vector(1,0,1),Vector(0,0,1),Vector(0,0,0)))
+        tri12 = Triangle((Vector(1,0,1),Vector(0,0,0),Vector(1,0,0)))
+
         
-        some_object = Object_3D((tri1,tri2))
+        some_object = Object_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
      
     # Update Data
         screen.fill(SCREEN_COLOR) # Reset Screen
 
         for tri in some_object.triangles:
-            Projected_tri,Translated_tri = Triangle
-            MatVectorMul(tri.v[0],Projected_tri.v[0],Mat_Proj)
-            MatVectorMul(tri.v[1],Projected_tri.v[1],Mat_Proj)
-            MatVectorMul(tri.v[2],Projected_tri.v[2],Mat_Proj)
+
+            Projected_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
+            MatVectorMul(tri.v[0],Mat_Proj,Projected_tri.v[0])
+            MatVectorMul(tri.v[1],Mat_Proj,Projected_tri.v[1])
+            MatVectorMul(tri.v[2],Mat_Proj,Projected_tri.v[2])
 
 
+            Projected_tri.v[0].x += 1.0
+            Projected_tri.v[0].y += 1.0
+            Projected_tri.v[1].x += 1.0
+            Projected_tri.v[1].y += 1.0
+            Projected_tri.v[2].x += 1.0
+            Projected_tri.v[2].y += 1.0
+
+            Projected_tri.v[0].x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v[0].y *= 0.5 * SCREEN_WIDTH
+            Projected_tri.v[1].x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v[1].y *= 0.5 * SCREEN_WIDTH
+            Projected_tri.v[2].x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v[2].y *= 0.5 * SCREEN_WIDTH
+
+            pygame.draw.polygon(screen,LINE_COLOR,
+                                ((Projected_tri.v[0].x,Projected_tri.v[0].y),
+                                 (Projected_tri.v[1].x,Projected_tri.v[1].y),
+                                 (Projected_tri.v[2].x,Projected_tri.v[2].y)))
+                  
     pygame.display.update()
     # Setting Max FPS
-    clock.tick(60)
+    clock.tick(1)
