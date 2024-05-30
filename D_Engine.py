@@ -1,7 +1,6 @@
 import pygame 
 from sys import exit
 import math as m
-import decimal
 
 #Declaring Constants 
 SCREEN_COLOR ="#171717"
@@ -179,13 +178,9 @@ while True:
         print("line2.y"+f"{line2.y}")
         print("line2.z"+f"{line2.z}")
 
-        normal.x = line2.y*line1.z +1- line1.y*line2.z
-        normal.y = line2.x*line1.z +1- line1.x*line2.z
-        normal.z = line2.x*line1.y +1- line1.x*line2.y
-
-        # normal.x = m.fsum([line2.y * line1.z, -line1.y * line2.z])
-        # normal.y = m.fsum([line1.z * line2.x, -line1.x * line2.z])
-        # normal.z = m.fsum([line1.x * line2.y, -line1.y * line2.x])
+        normal.x = line2.y*line1.z - line1.y*line2.z
+        normal.y = line2.x*line1.z - line1.x*line2.z
+        normal.z = line2.x*line1.y - line1.x*line2.y
 
         print("normal.x"+f"{normal.x}")
         print("normal.y"+f"{normal.y}")
