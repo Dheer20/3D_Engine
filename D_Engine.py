@@ -2,26 +2,35 @@ import pygame
 from sys import exit
 import math as m
 
+#Declaring Constants 
+
 SCREEN_COLOR ="#171717"
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
 LINE_COLOR = "#A9DDD6"
-
-# Defining Functions and Objects
+LINE_THICKNESS = 2
+FACE_COLOR = "#DDDDDD"
 A = SCREEN_WIDTH/SCREEN_HEIGHT
 FOV = 90.0 # in Degrees
 Zn = 0.1
 Zf = 1000.0
 P = 1/m.tan(m.radians(FOV)/2)
 T = Zf/(Zf-Zn)
-theta = 0
+
+#Declaring Variables
+
+theta1,theta2 = 0,0
+
+# Defining Matrices
 
 Mat_Proj = [P/A,0,0,0
             ,0,P,0,0
             ,0,0,T,-Zf*T
             ,0,0,1,0 ]
 
+
+# Defining Functions and Objects
 
 class Vector():
     def __init__(self,x,y,z) -> None:
@@ -48,12 +57,15 @@ def MatVectorMul(i,m,o) -> None:# i is input vector , m is 4x4 matrix to be mult
     if w != 0:
         o.x /= w ; o.y /= w ; o.z /= w
 
+# Setting up the Pygame Window/Screen
+
 pygame.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("3D Engine")
 clock=pygame.time.Clock()
 
-# Game Update Loop
+# Engine Update Loop
+
 while True:
 
     # Checking events
@@ -69,14 +81,10 @@ while True:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                # print(matR)
                 pass
+                
 
-    # Load Object Data
-    vec1 = Vector(0,0,0)
-    vec2 = Vector(0,0,1)
-    vec3 = Vector(0,1,0)
-
+    # Loading Object Data
 
     tri1 = Triangle((Vector(0,0,0),Vector(0,1,0),Vector(1,1,0)))
     tri2 = Triangle((Vector(0,0,0),Vector(1,1,0),Vector(1,0,0)))
@@ -91,49 +99,67 @@ while True:
     tri11 = Triangle((Vector(1,0,1),Vector(0,0,1),Vector(0,0,0)))
     tri12 = Triangle((Vector(1,0,1),Vector(0,0,0),Vector(1,0,0)))
 
-    
     Cube_3D = Object_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
 
-    # Rotation Matrices
-    theta += 0.02
+    # Updating Rotation Matrices
+
+    theta1 += 0.03  
+    theta2 += 0.01
 
     Mat_X_Rot = [1,0,0,0
-                ,0,m.cos(theta),-m.sin(theta),0
-                ,0,m.sin(theta),m.cos(theta),0
+            ,0,m.cos(theta1),-m.sin(theta1),0
+            ,0,m.sin(theta1),m.cos(theta1),0
+            ,0,0,0,1 ]
+
+    Mat_Y_Rot = [
+                m.cos(theta2),0,m.sin(theta2),0
+                ,0,1,0,0
+                ,-m.sin(theta2),0,m.cos(theta2),0
                 ,0,0,0,1 ]
-    
-    Mat_Z_Rot = [m.cos(theta),-m.sin(theta),0,0
-                ,m.sin(theta),m.cos(theta),0,0
+        
+    Mat_Z_Rot = [m.cos(theta2),-m.sin(theta2),0,0
+                ,m.sin(theta2),m.cos(theta2),0,0
                 ,0,0,1,0
                 ,0,0,0,1 ]
-     
-    # Draw Triangles
+        
+    # Applying Transformations
+
     screen.fill(SCREEN_COLOR) # Reset Screen
 
     for tri in Cube_3D.triangles:
-
+        
+        # Creating Triangle objects
         Projected_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
         X_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
         ZX_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
+        YZX_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
+        
+        # Appling multiplications for rotation
+        MatVectorMul(tri.v[0],Mat_Z_Rot,X_Rotated_tri.v[0])
+        MatVectorMul(tri.v[1],Mat_Z_Rot,X_Rotated_tri.v[1])
+        MatVectorMul(tri.v[2],Mat_Z_Rot,X_Rotated_tri.v[2])
 
-        MatVectorMul(tri.v[0],Mat_X_Rot,X_Rotated_tri.v[0])
-        MatVectorMul(tri.v[1],Mat_X_Rot,X_Rotated_tri.v[1])
-        MatVectorMul(tri.v[2],Mat_X_Rot,X_Rotated_tri.v[2])
+        MatVectorMul(X_Rotated_tri.v[0],Mat_X_Rot,ZX_Rotated_tri.v[0])
+        MatVectorMul(X_Rotated_tri.v[1],Mat_X_Rot,ZX_Rotated_tri.v[1])
+        MatVectorMul(X_Rotated_tri.v[2],Mat_X_Rot,ZX_Rotated_tri.v[2])
 
-        MatVectorMul(X_Rotated_tri.v[0],Mat_Z_Rot,ZX_Rotated_tri.v[0])
-        MatVectorMul(X_Rotated_tri.v[1],Mat_Z_Rot,ZX_Rotated_tri.v[1])
-        MatVectorMul(X_Rotated_tri.v[2],Mat_Z_Rot,ZX_Rotated_tri.v[2])
+        MatVectorMul(ZX_Rotated_tri.v[0],Mat_Y_Rot,YZX_Rotated_tri.v[0])
+        MatVectorMul(ZX_Rotated_tri.v[1],Mat_Y_Rot,YZX_Rotated_tri.v[1])
+        MatVectorMul(ZX_Rotated_tri.v[2],Mat_Y_Rot,YZX_Rotated_tri.v[2])
 
-        Translated_tri = ZX_Rotated_tri
+        Translated_tri = YZX_Rotated_tri
 
+        #Translating Triangles along the Z-axis
         Translated_tri.v[0].z += 3.0
         Translated_tri.v[1].z += 3.0
         Translated_tri.v[2].z += 3.0
 
+        #Projecting the Triangles
         MatVectorMul(Translated_tri.v[0],Mat_Proj,Projected_tri.v[0])
         MatVectorMul(Translated_tri.v[1],Mat_Proj,Projected_tri.v[1])
         MatVectorMul(Translated_tri.v[2],Mat_Proj,Projected_tri.v[2])
 
+        #Scaling the triangles
         Projected_tri.v[0].x += 1.0
         Projected_tri.v[0].y += 1.0
         Projected_tri.v[1].x += 1.0
@@ -148,11 +174,19 @@ while True:
         Projected_tri.v[2].x *= 0.5 * SCREEN_HEIGHT
         Projected_tri.v[2].y *= 0.5 * SCREEN_WIDTH
 
+        #Drawing the Triangles on the Screen
+        
+        # pygame.draw.polygon(screen,FACE_COLOR,
+        #                     ((Projected_tri.v[0].x,Projected_tri.v[0].y),
+        #                         (Projected_tri.v[1].x,Projected_tri.v[1].y),
+        #                         (Projected_tri.v[2].x,Projected_tri.v[2].y)))
+                  
         pygame.draw.polygon(screen,LINE_COLOR,
                             ((Projected_tri.v[0].x,Projected_tri.v[0].y),
                                 (Projected_tri.v[1].x,Projected_tri.v[1].y),
-                                (Projected_tri.v[2].x,Projected_tri.v[2].y)),1)
-                  
+                                (Projected_tri.v[2].x,Projected_tri.v[2].y)),LINE_THICKNESS)
+        
     pygame.display.update()
+    
     # Setting Max FPS
     clock.tick(60)
