@@ -1,9 +1,9 @@
 import pygame 
 from sys import exit
 import math as m
+import decimal
 
 #Declaring Constants 
-
 SCREEN_COLOR ="#171717"
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
@@ -19,11 +19,9 @@ P = 1/m.tan(m.radians(FOV)/2)
 T = Zf/(Zf-Zn)
 
 #Declaring Variables
-
 theta1,theta2 = 0,0
 
 # Defining Matrices
-
 Mat_Proj = [P/A,0,0,0
             ,0,P,0,0
             ,0,0,T,-Zf*T
@@ -38,10 +36,17 @@ class Vector():
         self.y = float(y) 
         self.z = float(z)
 
-class Triangle():
-    def __init__(self,vectors) -> None:
+# class Vector:
+#     def __init__(self, x, y, z):
+#         self.x = decimal.Decimal(x)
+#         self.y = decimal.Decimal(y)
+#         self.z = decimal.Decimal(z)
 
-        self.v = list(vectors)
+class Triangle():
+    def __init__(self, v0, v1, v2) -> None:
+        self.v0 = v0
+        self.v1 = v1
+        self.v2 = v2
 
 class Object_3D():
     def __init__(self,triangles) -> None:
@@ -66,6 +71,23 @@ clock=pygame.time.Clock()
 
 # Engine Update Loop
 
+# Loading Object Data
+
+tri1 = Triangle(Vector(0,0,0),Vector(0,1,0),Vector(1,1,0))
+tri2 = Triangle(Vector(0,0,0),Vector(1,1,0),Vector(1,0,0))
+tri3 = Triangle(Vector(1,0,0),Vector(1,1,0),Vector(1,1,1))
+tri4 = Triangle(Vector(1,0,0),Vector(1,1,1),Vector(1,0,1))
+tri5 = Triangle(Vector(1,0,1),Vector(1,1,1),Vector(0,1,1))
+tri6 = Triangle(Vector(1,0,1),Vector(0,1,1),Vector(0,0,1))
+tri7 = Triangle(Vector(0,0,1),Vector(0,1,1),Vector(0,1,0))
+tri8 = Triangle(Vector(0,0,1),Vector(0,1,0),Vector(0,0,0))
+tri9 = Triangle(Vector(0,1,0),Vector(0,1,1),Vector(1,1,1))
+tri10 = Triangle(Vector(0,1,0),Vector(1,1,1),Vector(1,1,0))
+tri11 = Triangle(Vector(1,0,1),Vector(0,0,1),Vector(0,0,0))
+tri12 = Triangle(Vector(1,0,1),Vector(0,0,0),Vector(1,0,0))
+
+Cube_3D = Object_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
+
 while True:
 
     # Checking events
@@ -83,24 +105,6 @@ while True:
             if event.key == pygame.K_SPACE:
                 pass
                 
-
-    # Loading Object Data
-
-    tri1 = Triangle((Vector(0,0,0),Vector(0,1,0),Vector(1,1,0)))
-    tri2 = Triangle((Vector(0,0,0),Vector(1,1,0),Vector(1,0,0)))
-    tri3 = Triangle((Vector(1,0,0),Vector(1,1,0),Vector(1,1,1)))
-    tri4 = Triangle((Vector(1,0,0),Vector(1,1,1),Vector(1,0,1)))
-    tri5 = Triangle((Vector(1,0,1),Vector(1,1,1),Vector(0,1,1)))
-    tri6 = Triangle((Vector(1,0,1),Vector(0,1,1),Vector(0,0,1)))
-    tri7 = Triangle((Vector(0,0,1),Vector(0,1,1),Vector(0,1,0)))
-    tri8 = Triangle((Vector(0,0,1),Vector(0,1,0),Vector(0,0,0)))
-    tri9 = Triangle((Vector(0,1,0),Vector(0,1,1),Vector(1,1,1)))
-    tri10 = Triangle((Vector(0,1,0),Vector(1,1,1),Vector(1,1,0)))
-    tri11 = Triangle((Vector(1,0,1),Vector(0,0,1),Vector(0,0,0)))
-    tri12 = Triangle((Vector(1,0,1),Vector(0,0,0),Vector(1,0,0)))
-
-    Cube_3D = Object_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
-
     # Updating Rotation Matrices
 
     theta1 += 0.03  
@@ -129,62 +133,99 @@ while True:
     for tri in Cube_3D.triangles:
         
         # Creating Triangle objects
-        Projected_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
-        X_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
-        ZX_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
-        YZX_Rotated_tri = Triangle((Vector(1,0,0),Vector(0,1,0),Vector(0,0,1)))
+        Projected_tri = Triangle(Vector(1,0,0),Vector(0,1,0),Vector(0,0,1))
+        X_Rotated_tri = Triangle(Vector(1,0,0),Vector(0,1,0),Vector(0,0,1))
+        ZX_Rotated_tri = Triangle(Vector(1,0,0),Vector(0,1,0),Vector(0,0,1))
+        YZX_Rotated_tri = Triangle(Vector(1,0,0),Vector(0,1,0),Vector(0,0,1))
         
         # Appling multiplications for rotation
-        MatVectorMul(tri.v[0],Mat_Z_Rot,X_Rotated_tri.v[0])
-        MatVectorMul(tri.v[1],Mat_Z_Rot,X_Rotated_tri.v[1])
-        MatVectorMul(tri.v[2],Mat_Z_Rot,X_Rotated_tri.v[2])
+        # Rotate in X-axis
+        MatVectorMul(tri.v0,Mat_X_Rot,X_Rotated_tri.v0)
+        MatVectorMul(tri.v1,Mat_X_Rot,X_Rotated_tri.v1)
+        MatVectorMul(tri.v2,Mat_X_Rot,X_Rotated_tri.v2)
 
-        MatVectorMul(X_Rotated_tri.v[0],Mat_X_Rot,ZX_Rotated_tri.v[0])
-        MatVectorMul(X_Rotated_tri.v[1],Mat_X_Rot,ZX_Rotated_tri.v[1])
-        MatVectorMul(X_Rotated_tri.v[2],Mat_X_Rot,ZX_Rotated_tri.v[2])
+        # Rotate in Z-axis
+        MatVectorMul(X_Rotated_tri.v2,Mat_Z_Rot,ZX_Rotated_tri.v2)
+        MatVectorMul(X_Rotated_tri.v1,Mat_Z_Rot,ZX_Rotated_tri.v1)
+        MatVectorMul(X_Rotated_tri.v0,Mat_Z_Rot,ZX_Rotated_tri.v0)
 
-        MatVectorMul(ZX_Rotated_tri.v[0],Mat_Y_Rot,YZX_Rotated_tri.v[0])
-        MatVectorMul(ZX_Rotated_tri.v[1],Mat_Y_Rot,YZX_Rotated_tri.v[1])
-        MatVectorMul(ZX_Rotated_tri.v[2],Mat_Y_Rot,YZX_Rotated_tri.v[2])
-
-        Translated_tri = YZX_Rotated_tri
+        # Rotate in Y-axis
+        MatVectorMul(ZX_Rotated_tri.v0,Mat_Y_Rot,YZX_Rotated_tri.v0)
+        MatVectorMul(ZX_Rotated_tri.v1,Mat_Y_Rot,YZX_Rotated_tri.v1)
+        MatVectorMul(ZX_Rotated_tri.v2,Mat_Y_Rot,YZX_Rotated_tri.v2)
 
         #Translating Triangles along the Z-axis
-        Translated_tri.v[0].z += 3.0
-        Translated_tri.v[1].z += 3.0
-        Translated_tri.v[2].z += 3.0
+        Translated_tri = YZX_Rotated_tri
+        Translated_tri.v0.z += 3.0
+        Translated_tri.v1.z += 3.0
+        Translated_tri.v2.z += 3.0
 
-        #Projecting the Triangles
-        MatVectorMul(Translated_tri.v[0],Mat_Proj,Projected_tri.v[0])
-        MatVectorMul(Translated_tri.v[1],Mat_Proj,Projected_tri.v[1])
-        MatVectorMul(Translated_tri.v[2],Mat_Proj,Projected_tri.v[2])
+        #Calculating Normals
+        normal,line1,line2 = Vector,Vector,Vector
 
-        #Scaling the triangles
-        Projected_tri.v[0].x += 1.0
-        Projected_tri.v[0].y += 1.0
-        Projected_tri.v[1].x += 1.0
-        Projected_tri.v[1].y += 1.0
-        Projected_tri.v[2].x += 1.0
-        Projected_tri.v[2].y += 1.0
+        line1.x = Translated_tri.v1.x - Translated_tri.v0.x
+        line1.y = Translated_tri.v1.y - Translated_tri.v0.y
+        line1.z = Translated_tri.v1.z - Translated_tri.v0.z
 
-        Projected_tri.v[0].x *= 0.5 * SCREEN_HEIGHT
-        Projected_tri.v[0].y *= 0.5 * SCREEN_WIDTH
-        Projected_tri.v[1].x *= 0.5 * SCREEN_HEIGHT
-        Projected_tri.v[1].y *= 0.5 * SCREEN_WIDTH
-        Projected_tri.v[2].x *= 0.5 * SCREEN_HEIGHT
-        Projected_tri.v[2].y *= 0.5 * SCREEN_WIDTH
+        print("line1.x"+f"{line1.x}")
+        print("line1.y"+f"{line1.y}")
+        print("line1.z"+f"{line1.z}")
 
-        #Drawing the Triangles on the Screen
-        
-        # pygame.draw.polygon(screen,FACE_COLOR,
-        #                     ((Projected_tri.v[0].x,Projected_tri.v[0].y),
-        #                         (Projected_tri.v[1].x,Projected_tri.v[1].y),
-        #                         (Projected_tri.v[2].x,Projected_tri.v[2].y)))
-                  
-        pygame.draw.polygon(screen,LINE_COLOR,
-                            ((Projected_tri.v[0].x,Projected_tri.v[0].y),
-                                (Projected_tri.v[1].x,Projected_tri.v[1].y),
-                                (Projected_tri.v[2].x,Projected_tri.v[2].y)),LINE_THICKNESS)
+        line2.x = Translated_tri.v2.x - Translated_tri.v0.x
+        line2.y = Translated_tri.v2.y - Translated_tri.v0.y
+        line2.z = Translated_tri.v2.z - Translated_tri.v0.z
+
+        print("line2.x"+f"{line2.x}")
+        print("line2.y"+f"{line2.y}")
+        print("line2.z"+f"{line2.z}")
+
+        normal.x = line2.y*line1.z +1- line1.y*line2.z
+        normal.y = line2.x*line1.z +1- line1.x*line2.z
+        normal.z = line2.x*line1.y +1- line1.x*line2.y
+
+        # normal.x = m.fsum([line2.y * line1.z, -line1.y * line2.z])
+        # normal.y = m.fsum([line1.z * line2.x, -line1.x * line2.z])
+        # normal.z = m.fsum([line1.x * line2.y, -line1.y * line2.x])
+
+        print("normal.x"+f"{normal.x}")
+        print("normal.y"+f"{normal.y}")
+        print("normal.z"+f"{normal.z}")
+
+        len = m.sqrt(normal.x**2+normal.y**2+normal.z**2)
+        print(len)
+        normal.x /= len ; normal.y /= len ;normal.z /= len
+
+        if normal.z > 0:
+            #Projecting the Triangles
+            MatVectorMul(Translated_tri.v0,Mat_Proj,Projected_tri.v0)
+            MatVectorMul(Translated_tri.v1,Mat_Proj,Projected_tri.v1)
+            MatVectorMul(Translated_tri.v2,Mat_Proj,Projected_tri.v2)
+
+            #Scaling the triangles
+            Projected_tri.v0.x += 1.0
+            Projected_tri.v0.y += 1.0
+            Projected_tri.v1.x += 1.0
+            Projected_tri.v1.y += 1.0
+            Projected_tri.v2.x += 1.0
+            Projected_tri.v2.y += 1.0
+            Projected_tri.v0.x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v0.y *= 0.5 * SCREEN_WIDTH
+            Projected_tri.v1.x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v1.y *= 0.5 * SCREEN_WIDTH
+            Projected_tri.v2.x *= 0.5 * SCREEN_HEIGHT
+            Projected_tri.v2.y *= 0.5 * SCREEN_WIDTH
+
+            #Drawing the Triangles on the Screen
+            
+            # pygame.draw.polygon(screen,FACE_COLOR,
+            #                     ((Projected_tri.v[0].x,Projected_tri.v[0].y),
+            #                         (Projected_tri.v[1].x,Projected_tri.v[1].y),
+            #                         (Projected_tri.v[2].x,Projected_tri.v[2].y)))
+                        
+            pygame.draw.polygon(screen,LINE_COLOR,
+                                ((Projected_tri.v0.x,Projected_tri.v0.y),
+                                 (Projected_tri.v1.x,Projected_tri.v1.y),
+                                 (Projected_tri.v2.x,Projected_tri.v2.y)),LINE_THICKNESS)
         
     pygame.display.update()
     
