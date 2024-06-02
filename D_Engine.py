@@ -27,7 +27,6 @@ Mat_Proj = [P/A,0,0,0
             ,0,0,T,-Zf*T
             ,0,0,1,0 ]
 
-
 # Defining Functions and Objects
 
 class Vector():
@@ -154,36 +153,25 @@ while True:
         Translated_tri.v1.z += 3.0
         Translated_tri.v2.z += 3.0
 
-        # #Calculating Normals
-        normal,line1,line2 = Vector,Vector,Vector
+        # Calculating Normals
 
-        line1.x = Translated_tri.v1.x - Translated_tri.v0.x
-        line1.y = Translated_tri.v1.y - Translated_tri.v0.y
-        line1.z = Translated_tri.v1.z - Translated_tri.v0.z
+        line1 = Vector(Translated_tri.v1.x - Translated_tri.v0.x, 
+                    Translated_tri.v1.y - Translated_tri.v0.y, 
+                    Translated_tri.v1.z - Translated_tri.v0.z)
 
-        print("line1.x"+f"{line1.x}")
-        print("line1.y"+f"{line1.y}")
-        print("line1.z"+f"{line1.z}")
+        line2 = Vector(Translated_tri.v2.x - Translated_tri.v0.x, 
+                    Translated_tri.v2.y - Translated_tri.v0.y, 
+                    Translated_tri.v2.z - Translated_tri.v0.z)
 
-        line2.x = Translated_tri.v2.x - Translated_tri.v0.x
-        line2.y = Translated_tri.v2.y - Translated_tri.v0.y
-        line2.z = Translated_tri.v2.z - Translated_tri.v0.z
+        normal = Vector(line2.y*line1.z - line1.y*line2.z,
+                        line2.x*line1.z - line1.x*line2.z,
+                        line2.x*line1.y - line1.x*line2.y)
 
-        print("line2.x"+f"{line2.x}")
-        print("line2.y"+f"{line2.y}")
-        print("line2.z"+f"{line2.z}")
-
-        normal.x = (line2.y*line1.z - line1.y*line2.z)
-        normal.y = (line2.x*line1.z - line1.x*line2.z)
-        normal.z = (line2.x*line1.y - line1.x*line2.y)
-
-        print("normal.x"+f"{normal.x}")
-        print("normal.y"+f"{normal.y}")
-        print("normal.z"+f"{normal.z}")
-
-        len = m.sqrt(normal.x**2+normal.y**2+normal.z**2)
-        print(len)
-        normal.x /= len ; normal.y /= len ;normal.z /= len
+        len = (normal.x**2 + normal.y**2 + normal.z**2) ** 0.5
+        if len != 0:
+            normal.x /= len
+            normal.y /= len
+            normal.z /= len
 
         if normal.z > 0:
         #Projecting the Triangles
