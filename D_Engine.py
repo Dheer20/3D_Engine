@@ -1,7 +1,6 @@
 import pygame 
 from sys import exit
 import math as m
-from decimal import Decimal
 
 #Declaring Constants 
 SCREEN_COLOR ="#171717"
@@ -9,7 +8,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
 LINE_COLOR = "#A9DDD6"
-LINE_THICKNESS = 2
+LINE_THICKNESS = 3
 FACE_COLOR = "#DDDDDD"
 A = SCREEN_WIDTH/SCREEN_HEIGHT
 FOV = 90.0 # in Degrees
@@ -18,17 +17,7 @@ Zf = 1000.0
 P = 1/m.tan(m.radians(FOV)/2)
 T = Zf/(Zf-Zn)
 
-#Declaring Variables
-theta1,theta2 = 0,0
-
-# Defining Matrices
-Mat_Proj = [P/A,0,0,0
-            ,0,P,0,0
-            ,0,0,T,-Zf*T
-            ,0,0,1,0 ]
-
 # Defining Functions and Objects
-
 class Vector():
     def __init__(self,x,y,z) -> None:
         self.x = float(x) 
@@ -45,6 +34,24 @@ class Mesh_3D():
     def __init__(self,triangles) -> None:
         self.triangles = triangles
 
+def GetColor(intensity) -> str:
+    color_value = int(intensity*255)
+    color = (color_value,color_value,color_value)
+    return color
+
+#Declaring Variables
+theta1,theta2 = 0,0
+
+# Defining Matrices
+Mat_Proj = [P/A,0,0,0
+            ,0,P,0,0
+            ,0,0,T,-Zf*T
+            ,0,0,1,0 ]
+
+# Defining Characteristic Vectors
+Camera_3D = Vector(0,0,0)
+Light_dir = Vector(0,0,-1)
+
 def MatVectorMul(i,m,o) -> None:# i is input vector , m is 4x4 matrix to be multiplied , o is the output vector
     
     o.x = i.x * m[0] + i.y * m[1] + i.z * m[2] + m[3]
@@ -56,16 +63,12 @@ def MatVectorMul(i,m,o) -> None:# i is input vector , m is 4x4 matrix to be mult
         o.x /= w ; o.y /= w ; o.z /= w
 
 # Setting up the Pygame Window/Screen
-
 pygame.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("3D Engine")
 clock=pygame.time.Clock()
 
-# Engine Update Loop
-
 # Loading Object Data
-
 tri1 = Triangle((0,0,0),(0,1,0),(1,1,0))
 tri2 = Triangle((0,0,0),(1,1,0),(1,0,0))
 tri3 = Triangle((1,0,0),(1,1,0),(1,1,1))
@@ -81,6 +84,7 @@ tri12 = Triangle((1,0,1),(0,0,0),(1,0,0))
 
 Cube_3D = Mesh_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
 
+# Engine Update Loop
 while True:
 
     # Checking events
@@ -154,27 +158,38 @@ while True:
         Translated_tri.v2.z += 3.0
 
         # Calculating Normals
-
         line1 = Vector(Translated_tri.v1.x - Translated_tri.v0.x, 
-                    Translated_tri.v1.y - Translated_tri.v0.y, 
-                    Translated_tri.v1.z - Translated_tri.v0.z)
+                       Translated_tri.v1.y - Translated_tri.v0.y, 
+                       Translated_tri.v1.z - Translated_tri.v0.z)
 
         line2 = Vector(Translated_tri.v2.x - Translated_tri.v0.x, 
-                    Translated_tri.v2.y - Translated_tri.v0.y, 
-                    Translated_tri.v2.z - Translated_tri.v0.z)
+                       Translated_tri.v2.y - Translated_tri.v0.y, 
+                       Translated_tri.v2.z - Translated_tri.v0.z)
 
-        normal = Vector(line2.y*line1.z - line1.y*line2.z,
-                        line2.x*line1.z - line1.x*line2.z,
-                        line2.x*line1.y - line1.x*line2.y)
+        normal = Vector(line1.y * line2.z - line1.z * line2.y,
+                        line1.z * line2.x - line1.x * line2.z,
+                        line1.x * line2.y - line1.y * line2.x)
 
         len = (normal.x**2 + normal.y**2 + normal.z**2) ** 0.5
         if len != 0:
             normal.x /= len
             normal.y /= len
             normal.z /= len
+        
+        #Calculating Culling conditon
+        view_direction = Vector(Translated_tri.v0.x - Camera_3D.x,
+                        Translated_tri.v0.y - Camera_3D.y,
+                        Translated_tri.v0.z - Camera_3D.z)
 
-        if normal.z > 0:
-        #Projecting the Triangles
+        dot_product = normal.x * view_direction.x + normal.y * view_direction.y + normal.z * view_direction.z
+
+        if dot_product < 0.0:  #backface culling condition
+
+            #Lighting
+            Illumination_dp = normal.x * Light_dir.x + normal.y * Light_dir.y + normal.z * Light_dir.z
+            FACE_COLOR = GetColor(Illumination_dp)
+
+            #Projecting the Triangles
             MatVectorMul(Translated_tri.v0,Mat_Proj,Projected_tri.v0)
             MatVectorMul(Translated_tri.v1,Mat_Proj,Projected_tri.v1)
             MatVectorMul(Translated_tri.v2,Mat_Proj,Projected_tri.v2)
@@ -186,6 +201,7 @@ while True:
             Projected_tri.v1.y += 1.0
             Projected_tri.v2.x += 1.0
             Projected_tri.v2.y += 1.0
+
             Projected_tri.v0.x *= 0.5 * SCREEN_HEIGHT
             Projected_tri.v0.y *= 0.5 * SCREEN_WIDTH
             Projected_tri.v1.x *= 0.5 * SCREEN_HEIGHT
@@ -195,15 +211,15 @@ while True:
 
             #Drawing the Triangles on the Screen
             
-            # pygame.draw.polygon(screen,FACE_COLOR,
-            #                     ((Projected_tri.v[0].x,Projected_tri.v[0].y),
-            #                         (Projected_tri.v[1].x,Projected_tri.v[1].y),
-            #                         (Projected_tri.v[2].x,Projected_tri.v[2].y)))
-                        
-            pygame.draw.polygon(screen,LINE_COLOR,
+            pygame.draw.polygon(screen,FACE_COLOR,
                                 ((Projected_tri.v0.x,Projected_tri.v0.y),
                                     (Projected_tri.v1.x,Projected_tri.v1.y),
-                                    (Projected_tri.v2.x,Projected_tri.v2.y)),LINE_THICKNESS)
+                                    (Projected_tri.v2.x,Projected_tri.v2.y)))
+                        
+            # pygame.draw.polygon(screen,LINE_COLOR,
+            #                     ((Projected_tri.v0.x,Projected_tri.v0.y),
+            #                         (Projected_tri.v1.x,Projected_tri.v1.y),
+            #                         (Projected_tri.v2.x,Projected_tri.v2.y)),LINE_THICKNESS)
         
     pygame.display.update()
     
