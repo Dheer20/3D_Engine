@@ -117,7 +117,7 @@ tri11 = Triangle((1,0,1),(0,0,1),(0,0,0))
 tri12 = Triangle((1,0,1),(0,0,0),(1,0,0))
 
 Cube_3D = Mesh_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
-Monkey = Mesh_3D.LoadObjFile("C:/Users/kanha/Dheer/Code/GitHub/3D_Engine/monkey.obj")
+Monkey = Mesh_3D.LoadObjFile("monkey.obj")
 
 
 # Engine Update Loop
