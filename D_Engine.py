@@ -3,7 +3,7 @@ from sys import exit
 import math as m
 
 #Declaring Constants 
-SCREEN_COLOR ="#171717"
+SCREEN_COLOR = "#171717"
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
@@ -17,6 +17,7 @@ Zf = 1000.0
 P = 1/m.tan(m.radians(FOV)/2)
 T = Zf/(Zf-Zn)
 
+
 # Defining Functions and Objects
 class Vector():
     def __init__(self,x,y,z) -> None:
@@ -29,15 +30,43 @@ class Triangle():
         self.v0 = Vector(*v0)
         self.v1 = Vector(*v1)
         self.v2 = Vector(*v2)
+        self.color = (12,103,310)
+        self.order = 1
+    
+    def GetColor(self,intensity) -> None:
+        color_value = int(intensity * 255)
+        self.color = (color_value, color_value, color_value)
 
 class Mesh_3D():
     def __init__(self,triangles) -> None:
         self.triangles = triangles
 
-def GetColor(intensity) -> str:
-    color_value = int(intensity*255)
-    color = (color_value,color_value,color_value)
-    return color
+    def LoadObjFile(filename):
+        vertices = []
+        triangles = []
+
+        with open(filename, 'r') as file:
+            for line in file:
+                # Ignore comments and empty lines
+                if line.startswith('#') or line.strip() == '':
+                    continue
+
+                # Parse vertex lines
+                if line.startswith('v '):
+                    parts = line.split()
+                    x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                    vertex = (x, y, z)  # Store vertices as iterable objects
+                    vertices.append(vertex)
+
+                # Parse face lines
+                elif line.startswith('f '):
+                    parts = line.split()
+                    vertex_indices = [int(part.split('/')[0]) - 1 for part in parts[1:4]]  # -1 to convert to zero-based index
+                    v0, v1, v2 = vertices[vertex_indices[0]], vertices[vertex_indices[1]], vertices[vertex_indices[2]]
+                    triangle = Triangle(v0, v1, v2)
+                    triangles.append(triangle)
+
+        return Mesh_3D(triangles)
 
 #Declaring Variables
 theta1,theta2 = 0,0
@@ -51,6 +80,11 @@ Mat_Proj = [P/A,0,0,0
 # Defining Characteristic Vectors
 Camera_3D = Vector(0,0,0)
 Light_dir = Vector(0,0,-1)
+len = (Light_dir.x**2 + Light_dir.y**2 + Light_dir.z**2) ** 0.5
+if len != 0:
+    Light_dir.x /= len
+    Light_dir.y /= len
+    Light_dir.z /= len
 
 def MatVectorMul(i,m,o) -> None:# i is input vector , m is 4x4 matrix to be multiplied , o is the output vector
     
@@ -83,6 +117,8 @@ tri11 = Triangle((1,0,1),(0,0,1),(0,0,0))
 tri12 = Triangle((1,0,1),(0,0,0),(1,0,0))
 
 Cube_3D = Mesh_3D((tri1,tri2,tri3,tri4,tri5,tri6,tri7,tri8,tri9,tri10,tri11,tri12))
+Monkey = Mesh_3D.LoadObjFile("C:/Users/kanha/Dheer/Code/GitHub/3D_Engine/monkey.obj")
+
 
 # Engine Update Loop
 while True:
@@ -124,10 +160,11 @@ while True:
                 ,0,0,0,1 ]
         
     # Applying Transformations
+    TriangleToRasterList=[]
 
     screen.fill(SCREEN_COLOR) # Reset Screen
 
-    for tri in Cube_3D.triangles:
+    for tri in Monkey.triangles:
         
         # Creating Triangle objects
         Projected_tri = Triangle((1,0,0),(0,1,0),(0,0,1))
@@ -187,12 +224,14 @@ while True:
 
             #Lighting
             Illumination_dp = normal.x * Light_dir.x + normal.y * Light_dir.y + normal.z * Light_dir.z
-            FACE_COLOR = GetColor(Illumination_dp)
+            if Illumination_dp < 0 : Illumination_dp = 0
+            Translated_tri.GetColor(Illumination_dp)
 
             #Projecting the Triangles
             MatVectorMul(Translated_tri.v0,Mat_Proj,Projected_tri.v0)
             MatVectorMul(Translated_tri.v1,Mat_Proj,Projected_tri.v1)
             MatVectorMul(Translated_tri.v2,Mat_Proj,Projected_tri.v2)
+            Projected_tri.color = Translated_tri.color
 
             #Scaling the triangles
             Projected_tri.v0.x += 1.0
@@ -209,18 +248,20 @@ while True:
             Projected_tri.v2.x *= 0.5 * SCREEN_HEIGHT
             Projected_tri.v2.y *= 0.5 * SCREEN_WIDTH
 
-            #Drawing the Triangles on the Screen
-            
-            pygame.draw.polygon(screen,FACE_COLOR,
-                                ((Projected_tri.v0.x,Projected_tri.v0.y),
-                                    (Projected_tri.v1.x,Projected_tri.v1.y),
-                                    (Projected_tri.v2.x,Projected_tri.v2.y)))
-                        
-            # pygame.draw.polygon(screen,LINE_COLOR,
-            #                     ((Projected_tri.v0.x,Projected_tri.v0.y),
-            #                         (Projected_tri.v1.x,Projected_tri.v1.y),
-            #                         (Projected_tri.v2.x,Projected_tri.v2.y)),LINE_THICKNESS)
+            TriangleToRasterList.append(Projected_tri)
         
+    for tri in TriangleToRasterList:
+        tri.order = (tri.v0.z + tri.v1.z +tri.v2.z)/3
+    
+    TriangleToRasterList.sort(key=lambda tri: tri.order, reverse=True)
+    
+    for tri in TriangleToRasterList:
+        #Drawing the Triangles on the Screen
+        pygame.draw.polygon(screen,tri.color,
+                            ((tri.v0.x,tri.v0.y),
+                            (tri.v1.x,tri.v1.y),
+                            (tri.v2.x,tri.v2.y)))
+
     pygame.display.update()
     
     # Setting Max FPS
