@@ -68,10 +68,10 @@ while True:
     for tri in Monkey.triangles:
         
         # Creating Triangle objects
-        # Projected_tri = Triangle()
-        # X_Rotated_tri = Triangle()
-        # ZX_Rotated_tri = Triangle()
-        # YZX_Rotated_tri = Triangle()
+        Projected_tri = Triangle()
+        X_Rotated_tri = Triangle()
+        ZX_Rotated_tri = Triangle()
+        YZX_Rotated_tri = Triangle()
         
         # Appling multiplications for rotation
         # Rotate in X-axis

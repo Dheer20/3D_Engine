@@ -57,31 +57,23 @@ class Triangle():
 class Matrix_3D():
     def __init__(self,matrix=[[0,0,0,0] for _ in range(4)]) -> None:
         self.matrix = matrix
-
+    
     def __add__(self,other: 'Matrix_3D')-> 'Matrix_3D':
-        result = Matrix_3D()
-        for i in range(4):
-            for j in range(4):
-                result.matrix[i][j] = self.matrix[i][j] + other.matrix[i][j]
-        return result
+        return Matrix_3D(
+            [a+b for a,b in zip(row1,row2)] 
+            for row1,row2 in zip(self.matrix,other.matrix))
 
     __radd__ = __add__
     
     def __sub__(self,other :'Matrix_3D')-> 'Matrix_3D':
-        result = Matrix_3D()
-        for i in range(4):
-            for j in range(4):
-                result.matrix[i][j] = self.matrix[i][j] - other.matrix[i][j]
-        return result
+        return Matrix_3D(
+            [a-b for a,b in zip(row1,row2)] 
+            for row1,row2 in zip(self.matrix,other.matrix))
     
     __rsub__ = __sub__
     
     def __mul__(self,other: float)-> 'Matrix_3D':
-        result = Matrix_3D()
-        for i in range(4):
-            for j in range(4):
-                result.matrix[i][j] = self.matrix[i][j] * other
-        return result
+        return Matrix_3D([a*other for a in row] for row in self.matrix)
 
     def __matmul__(self,other:'Matrix_3D')-> 'Matrix_3D':
         result = Matrix_3D()
@@ -94,26 +86,23 @@ class Matrix_3D():
         return result
         
     def __str__(self):
-        matrix_str = ""
-        for row in self.matrix:
-            matrix_str += ' '.join(map(str, row)) + '\n'
-        return matrix_str
+        return '\n'.join(' '.join(map(str,row)) for row in self.matrix)
     
     @classmethod
     def Identity(self):
         return self([[1,0,0,0],
-                    [0,1,0,0],
-                    [0,0,1,0],
-                    [0,0,0,1]])
+                     [0,1,0,0],
+                     [0,0,1,0],
+                     [0,0,0,1]])
 
     @classmethod
     def Projection(self,A,FOV,Zn,Zf)->list:
         T = Zf/(Zf-Zn)
         P = 1/m.tan(m.radians(FOV)/2)
         return self ([[P/A,0,0,0]
-                    ,[0,P,0,0]
-                    ,[0,0,T,-Zf*T]
-                    ,[0,0,1,0]])
+                     ,[0,P,0,0]
+                     ,[0,0,T,-Zf*T]
+                     ,[0,0,1,0]])
 
     
     @classmethod
@@ -191,7 +180,7 @@ class Mesh_3D():
         return Mesh_3D(triangles)
     
 if __name__ == '__main__':
-    A = Vector(2,1,1)
-    B= Vector(1,1,1)
-    C = A * 5
+    A = Matrix_3D.Identity()
+    B = Matrix_3D.Identity()
+    C = B*10 - A
     print(C)
