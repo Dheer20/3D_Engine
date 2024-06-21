@@ -23,6 +23,26 @@ class Vector():
             self.w /= self.w
         else: print('W is 0')
 
+    @classmethod
+    def TwoPoint(self,point1,point2):
+        return Vector(point1.x - point2.x,point1.y - point2.y,point1.z - point2.z)
+    
+    def __add__(self,other : 'Vector')-> 'Vector':
+        return Vector(
+            self.x+other.x,
+            self.y+other.y,
+            self.z+other.z,)
+    
+    __radd__ = __add__
+    
+    def __sub__(self,other : 'Vector')-> 'Vector':
+        return Vector(
+            self.x-other.x,
+            self.y-other.y,
+            self.z-other.z,)
+    
+    __rsub__ = __sub__
+
     def __matmul__(self,other:'Vector')-> 'Vector': #CROSS PRODUCT
         return Vector(
             self.y * other.z - self.z * other.y,
@@ -102,8 +122,25 @@ class Matrix_3D():
         return self ([[P/A,0,0,0]
                      ,[0,P,0,0]
                      ,[0,0,T,-Zf*T]
-                     ,[0,0,1,0]])
+                     ,[0,0,-1,0]])
 
+    @classmethod
+    def View_for_CameraPointAt(self,cam_position : Vector,target : Vector,up_vector : Vector):
+        # Calculating new forward vector
+        new_forward : Vector = target-cam_position
+        new_forward.Normalize()
+        
+        # Calculating new up vector
+        new_up : Vector = up_vector - (new_forward * (up_vector ** new_forward))
+        new_up.Normalize()
+
+        #Calculating New right vector
+        new_right : Vector = new_up @ new_forward
+
+        return self([[new_right.x,new_right.y,new_right.z,-(cam_position**new_right)],
+                     [new_up.x,new_up.y,new_up.z,-(cam_position**new_up)],
+                     [new_forward.x,new_forward.y,new_forward.z,-(cam_position**new_forward)],
+                     [0,0,0,1]])
     
     @classmethod
     def X_Rotation(self,Angle):
@@ -180,7 +217,8 @@ class Mesh_3D():
         return Mesh_3D(triangles)
     
 if __name__ == '__main__':
-    A = Matrix_3D.Identity()
-    B = Matrix_3D.Identity()
-    C = B*10 - A
+    A = Vector(1,1,1)
+    B = Vector(2,2,2)
+    D = Vector(20,20,20)
+    C = -(A ** B)
     print(C)
