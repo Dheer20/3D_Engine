@@ -75,8 +75,8 @@ class Triangle():
         self.color = (color_value,color_value ,color_value)
 
 class Matrix_3D():
-    def __init__(self,matrix=[[0,0,0,0] for _ in range(4)]) -> None:
-        self.matrix = matrix
+    def __init__(self,matrix=None) -> None:
+        self.matrix = list(matrix) if matrix else [[0,0,0,0] for _ in range(4)]
     
     def __add__(self,other: 'Matrix_3D')-> 'Matrix_3D':
         return Matrix_3D(
@@ -104,6 +104,8 @@ class Matrix_3D():
                     temp += self.matrix[i][k] * other.matrix[k][j]
                 result.matrix[i][j] = temp
         return result
+    
+    __rmatmul__ = __matmul__
         
     def __str__(self):
         return '\n'.join(' '.join(map(str,row)) for row in self.matrix)
@@ -116,7 +118,7 @@ class Matrix_3D():
                      [0,0,0,1]])
 
     @classmethod
-    def Projection(self,A,FOV,Zn,Zf)->list:
+    def Projection(self,A,FOV,Zn,Zf):
         T = Zf/(Zf-Zn)
         P = 1/m.tan(m.radians(FOV)/2)
         return self ([[P/A,0,0,0]
@@ -143,6 +145,13 @@ class Matrix_3D():
                      [0,0,0,1]])
     
     @classmethod
+    def Translation(self,X = 0,Y = 0,Z =0):
+        return self([[1,0,0,X],
+                     [0,1,0,Y],
+                     [0,0,1,Z],
+                     [0,0,0,1]])
+
+    @classmethod
     def X_Rotation(self,Angle):
         return self([[1,0,0,0]
                     ,[0,m.cos(Angle),-m.sin(Angle),0]
@@ -166,7 +175,7 @@ class Matrix_3D():
                     ,[0,0,0,1]])
     
     @staticmethod
-    def MatVectorMul(i,m) -> Vector:# i is input vector , m is 4x4 matrix to be multiplied
+    def MatVectorMul(i : Vector,m: 'Matrix_3D') -> Vector:
         m = m.matrix
         result = Vector()
         result.x = i.x * m[0][0] + i.y * m[0][1] + i.z * m[0][2] + m[0][3]

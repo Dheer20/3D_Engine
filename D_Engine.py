@@ -10,20 +10,20 @@ SCREEN_HEIGHT = 800
 SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
 LINE_COLOR = "#A9DDD6"
 LINE_THICKNESS = 1
+ROTATION_SPEED = 0.0  # Radians per second
+CAMERA_VELOCITY_Y = 0
+CAMERA_VELOCITY_X = 0
+MAX_VELOCITY = 20.0
+CAMERA_ACCELERATION = 10
+CAMERA_FRICTION = 0.95
 
-# camera_speed = 1  # Smaller value for smoother movement
-# camera_velocity = 0.0
-
-camera_velocity_y = 0
-camera_velocity_x = 0
-camera_acceleration = 10
-camera_friction = 0.95
 #Declaring Variables
 theta1,theta2 = 0,0
+wire_render = False
 
 # Creating Matrices
-Mat_Proj=Matrix_3D
-Mat_Proj=Matrix_3D.Projection(A=SCREEN_WIDTH/SCREEN_HEIGHT,FOV=45.0,Zn=0.01,Zf=1000.0)
+Proj_Mat=Matrix_3D
+Proj_Mat=Matrix_3D.Projection(A=SCREEN_WIDTH/SCREEN_HEIGHT,FOV=45.0,Zn=0.01,Zf=1000.0)
 
 # Defining Characteristic Vectors
 camera_3D = Vector(0,0,0)
@@ -38,51 +38,36 @@ clock=pygame.time.Clock()
 
 # Loading Object Data
 
-Monkey = Mesh_3D.LoadObjFile("monkey.obj")
+Monkey = Mesh_3D.LoadObjFile("objects/monkey.obj")
 
 # Engine Update Loop
 while True:
 
     keys = pygame.key.get_pressed()
-    elapsed_time = clock.get_time() / 1000.0
+    elapsed_time = clock.get_time() / 1000.0 # Convert milliseconds to seconds
 
     # Apply acceleration based on key presses
     if keys[pygame.K_DOWN]:
-        camera_velocity_y -= camera_acceleration * elapsed_time
+        CAMERA_VELOCITY_Y -= CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_UP]:
-        camera_velocity_y += camera_acceleration * elapsed_time
+        CAMERA_VELOCITY_Y += CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_LEFT]:
-        camera_velocity_x += camera_acceleration * elapsed_time
+        CAMERA_VELOCITY_X += CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_RIGHT]:
-        camera_velocity_x -= camera_acceleration * elapsed_time
+        CAMERA_VELOCITY_X -= CAMERA_ACCELERATION * elapsed_time
     
 
     # Apply velocity to camera position
-    camera_3D.y += camera_velocity_y * elapsed_time
-    camera_3D.x += camera_velocity_x * elapsed_time
+    camera_3D.y += CAMERA_VELOCITY_Y * elapsed_time
+    camera_3D.x += CAMERA_VELOCITY_X * elapsed_time
 
     # Apply friction to slow down the camera when no keys are pressed
-    camera_velocity_y *= camera_friction
-    camera_velocity_x *= camera_friction
+    CAMERA_VELOCITY_Y *= CAMERA_FRICTION
+    CAMERA_VELOCITY_X *= CAMERA_FRICTION
 
     # Optional: Clamp velocity to prevent excessive speed
-    max_velocity = 20.0
-    camera_velocity_y = max(min(camera_velocity_y, max_velocity), -max_velocity)
-    camera_velocity_x = max(min(camera_velocity_x, max_velocity), -max_velocity)
-
-    # dt = clock.tick(60)  # Limit frame rate to 60 FPS (returns elapsed time in milliseconds)
-
-    # keys = pygame.key.get_pressed()
-    # if keys[pygame.K_DOWN]:
-    #     camera_velocity -= camera_speed * dt / 1000
-    # elif keys[pygame.K_UP]:
-    #     camera_velocity += camera_speed * dt / 1000
-    # else:
-    #     # Apply deceleration when no keys are pressed
-    #     camera_velocity *= 0.90  # Adjust the decay factor as needed
-
-    # # Update camera position using velocity
-    # camera_3D.y += camera_velocity
+    CAMERA_VELOCITY_Y = max(min(CAMERA_VELOCITY_Y, MAX_VELOCITY), -MAX_VELOCITY)
+    CAMERA_VELOCITY_X = max(min(CAMERA_VELOCITY_X, MAX_VELOCITY), -MAX_VELOCITY)
 
     # Checking events
     for event in pygame.event.get():
@@ -95,25 +80,30 @@ while True:
                 pygame.quit() 
                 exit()
 
-        # if event.type == pygame.KEYDOWN:
-        #     if event.key == pygame.key.get_pressed():
-        #         camera_3D.y -= 0.5
-
-        # if event.type == pygame.KEYDOWN:
-        #     if event.key == pygame.K_UP:
-        #         camera_3D.y += 0.5
-
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                pass
-                
-    # Updating Rotation Matrices
+                camera_3D = Vector(0,0,0)
+                CAMERA_VELOCITY_Y = 0
+                CAMERA_VELOCITY_X = 0
 
-    # theta1 += 0.03
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LSHIFT:
+                wire_render = not wire_render
+
+                
+                
+    # Updating Rotation and Translation Matrices
+
+    # Calculate the rotation angle for this frame
+    rotation_angle = ROTATION_SPEED * elapsed_time
     
-    Mat_X_Rot = Matrix_3D.X_Rotation(theta1)
-    Mat_Y_Rot = Matrix_3D.Y_Rotation(theta1)
-    Mat_Z_Rot = Matrix_3D.Z_Rotation(theta1)
+    X_Rot_Mat = Matrix_3D.X_Rotation(theta1)
+    Y_Rot_Mat = Matrix_3D.Y_Rotation(theta1)
+    Z_Rot_Mat = Matrix_3D.Z_Rotation(theta1)
+    Translation_Z_Mat = Matrix_3D.Translation(Z=8.0)
+
+    # Update theta1 for the next frame
+    theta1 += rotation_angle
 
     look_dir = Vector(0,0,1)
     up = Vector(0,1,0)
@@ -128,21 +118,11 @@ while True:
 
     for tri in Monkey.triangles:
         
-        # Appling multiplications for rotation
-        # Rotate in X-axis
-        X_Rotated_tri=Matrix_3D.MatTriMul(tri,Mat_X_Rot)
+        World_Mat = Matrix_3D.Identity()
+        
+        World_Mat = Translation_Z_Mat @ Z_Rot_Mat @ Y_Rot_Mat @ X_Rot_Mat
 
-        # Rotate in Z-axis
-        ZX_Rotated_tri=Matrix_3D.MatTriMul(X_Rotated_tri,Mat_Z_Rot)
-
-        # Rotate in Y-axis
-        YZX_Rotated_tri=Matrix_3D.MatTriMul(ZX_Rotated_tri,Mat_Y_Rot)
-
-        #Translating Triangles along the Z-axis
-        Translated_tri = YZX_Rotated_tri
-        Translated_tri.v0.z += 8.0
-        Translated_tri.v1.z += 8.0
-        Translated_tri.v2.z += 8.0
+        Translated_tri = Matrix_3D.MatTriMul(tri,World_Mat)
 
         # Calculating Normals
         line1 = Vector.TwoPoint(Translated_tri.v1,Translated_tri.v0)
@@ -168,7 +148,7 @@ while True:
             View_tri = Matrix_3D.MatTriMul(Translated_tri,View_Mat)
 
             #Projecting the Triangles
-            Projected_tri = Matrix_3D.MatTriMul(View_tri,Mat_Proj)
+            Projected_tri = Matrix_3D.MatTriMul(View_tri,Proj_Mat)
             Projected_tri.color = Translated_tri.color
 
             #Scaling the triangles
@@ -195,10 +175,16 @@ while True:
     
     for tri in TriangleToRasterList:
         #Drawing the Triangles on the Screen
-        pygame.draw.polygon(screen,tri.color,
-                            ((tri.v0.x,tri.v0.y),
-                             (tri.v1.x,tri.v1.y),
-                             (tri.v2.x,tri.v2.y)))
+        if wire_render == False:
+            pygame.draw.polygon(screen,tri.color,
+                                ((tri.v0.x,tri.v0.y),
+                                (tri.v1.x,tri.v1.y),
+                                (tri.v2.x,tri.v2.y)))
+        else:
+            pygame.draw.polygon(screen,LINE_COLOR,
+                                ((tri.v0.x,tri.v0.y),
+                                (tri.v1.x,tri.v1.y),
+                                (tri.v2.x,tri.v2.y)),LINE_THICKNESS)
 
     pygame.display.update()
     
