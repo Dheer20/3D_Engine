@@ -4,7 +4,7 @@ import math as m
 from Geometry import *
 
 #Declaring Constants 
-SCREEN_COLOR = "#171717"
+SCREEN_COLOR = (23,23,23)
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
@@ -16,8 +16,8 @@ CAMERA_VELOCITY_X = 0
 MAX_VELOCITY = 60.0
 CAMERA_ACCELERATION = 40
 CAMERA_FRICTION = 0.95
-SHADOW = (0, 0, 0)
-HIGHLIGHT = (255, 255, 255)
+SHADOW = (30, 30, 30)
+HIGHLIGHT = (252, 251, 252)
 WALKING_VELOCITY = 0
 WALKING_ACCELERATION = 60
 WALKING_FRICTION = 0.90
@@ -25,7 +25,7 @@ STRAFING_VELOCITY = 0
 STRAFING_ACCELERATION = 40
 STRAFING_FRICTION = 0.90
 MOUSE_SENSITIVITY = 0.01
-
+ 
 #Declaring Variables
 theta1,theta2 = 0,0
 wire_render = False
@@ -147,7 +147,7 @@ while True:
     look_dir = Matrix_3D.MatVectorMul(look_dir,Mouse_Rot_Mat)
     look_dir.Normalize()
     target = camera_3D + look_dir
-    light_dir = look_dir * -1
+    # light_dir = look_dir * -1
 
     View_Mat , right = Matrix_3D.View_for_CameraPointAt(camera_3D,target,up)
 
