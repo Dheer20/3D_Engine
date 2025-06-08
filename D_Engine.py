@@ -1,7 +1,22 @@
-import pygame  # type: ignore
+import pygame 
 from sys import exit
 import math as m
 from Geometry import *
+
+def hex_to_rgb(hex_color):
+    """
+    Convert a hex color string to an RGB tuple.
+
+    Args:
+        hex_color (str): Hexadecimal color string (e.g., "#FFFFFF" or "FFFFFF").
+
+    Returns:
+        tuple: A tuple representing the RGB values (R, G, B).
+    """
+    hex_color = hex_color.lstrip('#')  # Remove '#' if present
+    if len(hex_color) != 6:
+        raise ValueError("Input should be a 6-character hex color code.")
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 #Declaring Constants 
 SCREEN_COLOR = (23,23,23)
@@ -16,8 +31,10 @@ CAMERA_VELOCITY_X = 0
 MAX_VELOCITY = 60.0
 CAMERA_ACCELERATION = 40
 CAMERA_FRICTION = 0.95
-SHADOW = (30, 30, 30)
-HIGHLIGHT = (252, 251, 252)
+# SHADOW = (30, 30, 30)
+# HIGHLIGHT = (252, 251, 252)
+SHADOW = hex_to_rgb("#1B1767")
+HIGHLIGHT = hex_to_rgb("#03C5CF")
 WALKING_VELOCITY = 0
 WALKING_ACCELERATION = 60
 WALKING_FRICTION = 0.90
