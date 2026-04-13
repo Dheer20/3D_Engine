@@ -1,3 +1,4 @@
+import os
 import pygame 
 from sys import exit
 import math as m
@@ -51,7 +52,13 @@ pitch = 0
 
 # Loading Object Data
 
-Object = Mesh_3D.LoadObjFile("objects/mountains.obj")
+object_folder = "objects"
+
+objects = sorted([f for f in os.listdir(object_folder) if f.endswith('.obj')])
+
+current_object_index = 0
+
+Object = Mesh_3D.LoadObjFile(os.path.join(object_folder,objects[current_object_index]))
 
 # Creating Plane
 Znear_Plane         =   Plane(normal = Vector(0,0,1.0) , point = Vector(0,0,0.1))
@@ -125,6 +132,14 @@ while True:
             if event.key == pygame.K_ESCAPE:
                 pygame.quit() 
                 exit()
+
+            if event.key == pygame.K_e:
+                current_object_index = (current_object_index + 1) % len(objects)
+                Object = Mesh_3D.LoadObjFile(os.path.join(object_folder,objects[current_object_index]))
+            
+            if event.key == pygame.K_q:
+                current_object_index = (current_object_index - 1) % len(objects)
+                Object = Mesh_3D.LoadObjFile(os.path.join(object_folder,objects[current_object_index]))
         
             if event.key == pygame.K_HOME:
                 camera_3D = Vector(0,0,0)
@@ -187,6 +202,8 @@ while True:
     Z_Rot_Mat = Matrix_3D.Z_Rotation(theta1)
     Translation_Z_Mat = Matrix_3D.Translation(Z=8.0)
 
+    World_Mat = Translation_Z_Mat #@ Z_Rot_Mat @ Y_Rot_Mat @ X_Rot_Mat
+
     # Update theta1 for the next frame
     theta1 += rotation_angle
     
@@ -199,9 +216,7 @@ while True:
     for tri in Object.triangles:
         
         # tri = Matrix_3D.MatTriMul(tri,Scale_Mat)
-        
-        World_Mat = Translation_Z_Mat #@ Z_Rot_Mat @ Y_Rot_Mat @ X_Rot_Mat
-
+                
         Translated_tri = Matrix_3D.MatTriMul(tri,World_Mat)
 
         # Calculating Normals
@@ -294,4 +309,4 @@ while True:
     pygame.display.update()
     
     # Setting Max FPS
-    clock.tick(60)
+    clock.tick(120)
