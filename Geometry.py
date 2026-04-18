@@ -206,7 +206,6 @@ class Matrix_3D():
         result.v2 = Matrix_3D.MatVectorMul(t.v2,m)
         return result
         
-
 class Mesh_3D():
     def __init__(self,triangles) -> None:
         self.triangles = triangles
