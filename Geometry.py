@@ -75,6 +75,7 @@ class Triangle():
         self.color = color
         self.order = order
         self.normal = None
+        self.object = None
     
     def GetColor(self,shadow : tuple[int] ,highlight : tuple[int],intensity : float) -> None:
         self.color = tuple(round(a+(b-a)*intensity,3) for a,b in zip(shadow,highlight))

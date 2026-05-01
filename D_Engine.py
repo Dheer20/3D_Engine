@@ -21,6 +21,23 @@ def hex_to_rgb(hex_color):
         raise ValueError("Input should be a 6-character hex color code.")
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
+def raycast(origin,direction,tris):
+    best_t = float('inf')
+    best_obj = None
+    best_pt = None
+
+    for tri in tris:
+        if tri.normal ** direction >= 0:
+            continue
+        t = ray_triangle_intersect(origin,direction,tri)
+        
+        if t is not None and t < best_t:
+            best_t = t
+            best_obj = tri.object
+            best_pt = origin + direction * best_t
+
+    return best_obj, best_pt
+
 #Declaring Constants 
 SCREEN_COLOR = (23,23,23)
 SCREEN_WIDTH = 800
@@ -29,6 +46,7 @@ SCREEN_SIZE = (SCREEN_WIDTH,SCREEN_HEIGHT)
 LINE_COLOR = "#A9DDD6"
 LINE_THICKNESS = 1
 ROTATION_SPEED = 0.0  # Radians per second
+CAMERA_VELOCITY_Z = 0
 CAMERA_VELOCITY_Y = 0
 CAMERA_VELOCITY_X = 0
 MAX_VELOCITY = 60.0
@@ -45,12 +63,14 @@ STRAFING_FRICTION = 0.90
 MOUSE_SENSITIVITY = 0.05
 GRAVITY = -10
 FOV = 90.0
+DEFAULT_DEPTH = 8.0
  
 #Declaring Variables
 wire_render = False
 yaw = 0
 pitch = 0
 click_pos = None
+mouse_locked = True
 
 # Loading Object Data
 
@@ -110,13 +130,13 @@ while True:
 
     # Axis Movements
     if keys[pygame.K_DOWN]:
-        CAMERA_VELOCITY_Y -= CAMERA_ACCELERATION * elapsed_time
+        CAMERA_VELOCITY_Z -= CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_UP]:
-        CAMERA_VELOCITY_Y += CAMERA_ACCELERATION * elapsed_time
+        CAMERA_VELOCITY_Z += CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_LEFT]:  
-        CAMERA_VELOCITY_X += CAMERA_ACCELERATION * elapsed_time
-    if keys[pygame.K_RIGHT]:
         CAMERA_VELOCITY_X -= CAMERA_ACCELERATION * elapsed_time
+    if keys[pygame.K_RIGHT]:
+        CAMERA_VELOCITY_X += CAMERA_ACCELERATION * elapsed_time
 
     # Vertical Movements
     if keys[pygame.K_SPACE]:
@@ -140,12 +160,12 @@ while True:
             pygame.quit()
             exit()
 
-        if event.type == pygame.MOUSEMOTION:
+        if event.type == pygame.MOUSEMOTION and mouse_locked:
             yaw -= event.rel[0] * MOUSE_SENSITIVITY * elapsed_time
             pitch += event.rel[1] * MOUSE_SENSITIVITY * elapsed_time
 
             pitch = max(min(pitch, m.pi/2 - 0.1), -m.pi/2 + 0.1)
-        
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 click_pos = event.pos
@@ -162,11 +182,18 @@ while True:
             if event.key == pygame.K_q:
                 current_object_index = (current_object_index - 1) % len(objects)
                 Object = Mesh_3D.LoadObjFile(os.path.join(object_folder,objects[current_object_index]))
+
+            # Place Mode
+            if event.key == pygame.K_p:
+                mouse_locked = not mouse_locked
+                pygame.event.set_grab(mouse_locked)
+                pygame.mouse.set_visible(not mouse_locked)
         
             if event.key == pygame.K_HOME:
                 camera_3D = Vector(0,0,0)
                 CAMERA_VELOCITY_Y = 0
                 CAMERA_VELOCITY_X = 0
+                CAMERA_VELOCITY_Z = 0
                 yaw , pitch = 0 , 0
         
             if event.key == pygame.K_TAB: 
@@ -182,15 +209,17 @@ while True:
     # Apply velocity to camera position
     camera_3D.y += CAMERA_VELOCITY_Y * elapsed_time
     camera_3D.x += CAMERA_VELOCITY_X * elapsed_time
+    camera_3D.z += CAMERA_VELOCITY_Z * elapsed_time
 
     # Apply friction to slow down the camera when no keys are pressed
     CAMERA_VELOCITY_Y *= CAMERA_FRICTION
     CAMERA_VELOCITY_X *= CAMERA_FRICTION
+    CAMERA_VELOCITY_Z *= CAMERA_FRICTION
     
-
     # Optional: Clamp velocity to prevent excessive speed
     CAMERA_VELOCITY_Y = max(min(CAMERA_VELOCITY_Y, MAX_VELOCITY), -MAX_VELOCITY)
     CAMERA_VELOCITY_X = max(min(CAMERA_VELOCITY_X, MAX_VELOCITY), -MAX_VELOCITY)
+    CAMERA_VELOCITY_Z = max(min(CAMERA_VELOCITY_Z, MAX_VELOCITY), -MAX_VELOCITY)
 
     look_dir = Vector(0,0,1)
     up = Vector(0,1,0)
@@ -227,21 +256,28 @@ while True:
 
     # Rasterization Pipeline
     if click_pos is not None:
-        position,direction = screen_to_ray(click_pos[0],click_pos[1],
+        x,y = click_pos if not mouse_locked else (SCREEN_WIDTH//2,SCREEN_HEIGHT//2)
+        position,direction = screen_to_ray(x,y,
                                            SCREEN_WIDTH,SCREEN_HEIGHT,
                                            camera_3D,look_dir,right,up,FOV)
         
-        closest_t = float('inf')
-        hit_tri = None
+        sel_obj,sel_pt = raycast(position,direction,world_tris)
 
-        for tri in world_tris:
-            t = ray_triangle_intersect(position,direction,tri)
+        hit_ground = None
+
+        if sel_obj is None:
+            if direction.y < -1e-6:
+                t_ground = -position.y / direction.y
+                if t_ground <= DEFAULT_DEPTH + 20:
+                    hit_ground = position + direction * t_ground
+                    hit_ground.y = 0.0
             
-            if t is not None and t < closest_t:
-                closest_t = t
-                hit_tri = tri
-        if hit_tri:
-            print("Hit Triangle at : ", position + direction * closest_t)
+            default_pt = position + direction * DEFAULT_DEPTH
+
+            place_at = hit_ground if hit_ground else default_pt
+            new_world.add_object(SceneObject(Cube,place_at,Vector(1,1,1),Vector(0,0,0),hit_ground))
+
+        print("hit:", sel_obj is not None)
         click_pos = None
 
     # Rasterization Pipeline
@@ -313,11 +349,6 @@ while True:
                                 (tri.v1.x,tri.v1.y),
                                 (tri.v2.x,tri.v2.y)),LINE_THICKNESS)
                 
-    
-    center_x = SCREEN_WIDTH // 2
-    center_y = SCREEN_HEIGHT // 2
-
-    pygame.mouse.set_pos((center_x, center_y))
     pygame.display.update()
     
     # Setting Max FPS

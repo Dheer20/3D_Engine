@@ -54,6 +54,7 @@ class SceneObject():
             wt = Matrix_3D.MatTriMul(tri,word_mat)
             wt.color = tri.color
             wt.compute_normal()
+            wt.object = self
             yield wt
 
     def overlaps(self,other):
