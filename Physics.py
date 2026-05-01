@@ -33,6 +33,7 @@ class SceneObject():
         for tri in self.mesh.triangles:
             wt = Matrix_3D.MatTriMul(tri,word_mat)
             wt.color = tri.color
+            wt.compute_normal()
             yield wt    
 
 class PhysicsWorld():

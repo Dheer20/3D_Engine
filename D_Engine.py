@@ -34,8 +34,6 @@ CAMERA_VELOCITY_X = 0
 MAX_VELOCITY = 60.0
 CAMERA_ACCELERATION = 40
 CAMERA_FRICTION = 0.95
-# SHADOW = (30, 30, 30)
-# HIGHLIGHT = (252, 251, 252)
 SHADOW = hex_to_rgb("#1B1767")
 HIGHLIGHT = hex_to_rgb("#03C5CF")
 WALKING_VELOCITY = 0
@@ -45,13 +43,14 @@ STRAFING_VELOCITY = 0
 STRAFING_ACCELERATION = 40
 STRAFING_FRICTION = 0.90
 MOUSE_SENSITIVITY = 0.05
-GRAVITY = -10   
+GRAVITY = -10
+FOV = 90.0
  
 #Declaring Variables
-# theta1,theta2 = 0,0
 wire_render = False
 yaw = 0
 pitch = 0
+click_pos = None
 
 # Loading Object Data
 
@@ -63,7 +62,7 @@ current_object_index = 0
 
 Object = Mesh_3D.LoadObjFile(os.path.join(object_folder,objects[current_object_index]))
 
-Cube = Mesh_3D.LoadObjFile(os.path.join("objects","teapot.obj"))
+Cube = Mesh_3D.LoadObjFile(os.path.join("objects","cube.obj"))
 Sphere = Mesh_3D.LoadObjFile(os.path.join("objects","sphere.obj"))
 Cylinder = Mesh_3D.LoadObjFile(os.path.join("objects","cylinder.obj"))
 
@@ -77,9 +76,7 @@ left_screen_plane   =   Plane(normal = Vector(1.0,0,0) , point = Vector(0,0,0))
 Cliping_Planes = [upper_screen_plane,bottom_screen_plane,right_screen_plane,left_screen_plane]
 
 # Creating Matrices
-Proj_Mat=Matrix_3D
-Proj_Mat=Matrix_3D.Projection(A=SCREEN_WIDTH/SCREEN_HEIGHT,FOV=90.0,Zn=0.1,Zf=1000.0)
-Scale_Mat = Matrix_3D.Scale(3,3,3)
+Proj_Mat=Matrix_3D.Projection(A=SCREEN_WIDTH/SCREEN_HEIGHT,FOV=FOV,Zn=0.1,Zf=1000.0)
 
 # Defining Characteristic Vectors
 camera_3D = Vector(0,0,0)
@@ -91,12 +88,16 @@ pygame.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.event.set_grab(True)
 pygame.display.set_caption("3D Engine")
-pygame.mouse.set_visible(False)
+pygame.mouse.set_visible(True)
 clock=pygame.time.Clock()
 
+tri1 = Triangle((-4,-4,0),(0,4,0),(4,-4,0))
+Cube_3D = Mesh_3D((tri1,tri1))
+
 new_world = PhysicsWorld(GRAVITY)
-new_world.add_objects([SceneObject(Cube, Vector(-4,9,6), Vector(1,1,1), Vector(1,0,1)),
-                       SceneObject(Sphere, Vector(-4,9,6), Vector(1,1.3,1), Vector(1,0,1)),
+new_world.add_objects([SceneObject(Cube, Vector(0,4,7), Vector(1,1,1), Vector(0,0,0)),
+                       SceneObject(Cube, Vector(-4,2,6), Vector(1,1,1), Vector(0,0,0)),
+                       SceneObject(Cube, Vector(-4,9,6), Vector(1,1.3,1), Vector(0,0,0)),
                        SceneObject(Cylinder, Vector(3,20,20), Vector(2,3,2), Vector(0,0,3))])
 
 # Engine Update Loop
@@ -105,6 +106,8 @@ while True:
     elapsed_time = clock.get_time() / 1000.0 # Convert milliseconds to seconds
 
     # Checking keys for Key Press
+
+    # Axis Movements
     if keys[pygame.K_DOWN]:
         CAMERA_VELOCITY_Y -= CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_UP]:
@@ -114,11 +117,13 @@ while True:
     if keys[pygame.K_RIGHT]:
         CAMERA_VELOCITY_X -= CAMERA_ACCELERATION * elapsed_time
 
+    # Vertical Movements
     if keys[pygame.K_SPACE]:
         CAMERA_VELOCITY_Y += CAMERA_ACCELERATION * elapsed_time
     if keys[pygame.K_LSHIFT]:
         CAMERA_VELOCITY_Y -= CAMERA_ACCELERATION * elapsed_time
 
+    # FP Movements
     if keys[pygame.K_a]:
         STRAFING_VELOCITY -= STRAFING_ACCELERATION * elapsed_time
     if keys[pygame.K_d]:
@@ -140,6 +145,10 @@ while True:
 
             pitch = max(min(pitch, m.pi/2 - 0.1), -m.pi/2 + 0.1)
         
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                click_pos = event.pos
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 pygame.quit() 
@@ -211,85 +220,86 @@ while True:
 
     screen.fill(SCREEN_COLOR) # Reset Screen
 
-    TriangleToRasterList=[]
+    world_tris = []
     for obj in new_world.objects:
-        TriangleToClipList = []
+        world_tris.extend(obj.world_triangles())
+
+    # Rasterization Pipeline
+    if click_pos is not None:
+        position,direction = screen_to_ray(click_pos[0],click_pos[1],
+                                           SCREEN_WIDTH,SCREEN_HEIGHT,
+                                           camera_3D,look_dir,right,up,FOV)
         
-        for tri in obj.world_triangles():
+        closest_t = float('inf')
+        hit_tri = None
+
+        for tri in world_tris:
+            t = ray_triangle_intersect(position,direction,tri)
             
-            # Calculating Normals
-            line1 = Vector.TwoPoint(tri.v1,tri.v0)
+            if t is not None and t < closest_t:
+                closest_t = t
+                hit_tri = tri
+        if hit_tri:
+            print("Hit Triangle at : ", position + direction * closest_t)
+        click_pos = None
 
-            line2 = Vector.TwoPoint(tri.v2,tri.v0)
+    # Rasterization Pipeline
+   
+    Triangles = []
+    for tri in world_tris:
+                  
+        #Calculating Culling conditon
+        view_direction = tri.v0 - camera_3D
+        dot_product = tri.normal ** view_direction
 
-            normal = line1 @ line2
+        if dot_product < 0.0:  #backface culling condition
 
-            normal.Normalize()
-            
-            #Calculating Culling conditon
-            view_direction = tri.v0 - camera_3D
-            view_direction.Normalize()
+            #Lighting
+            Illumination_dp = tri.normal ** light_dir
+            if Illumination_dp < 0 : Illumination_dp = 0
+            tri.GetColor(SHADOW,HIGHLIGHT,Illumination_dp)
 
-            dot_product = normal ** view_direction
+            View_tri = Matrix_3D.MatTriMul(tri,View_Mat)
+            View_tri.color = tri.color
 
-            if dot_product < 0.0:  #backface culling condition
+            for Clip_tri in Znear_Plane.clip_triangle(View_tri):
 
-                #Lighting
-                Illumination_dp = normal ** light_dir
-                if Illumination_dp < 0 : Illumination_dp = 0
-                tri.GetColor(SHADOW,HIGHLIGHT,Illumination_dp)
+                #Projecting the Triangles
+                Projected_tri = Matrix_3D.MatTriMul(Clip_tri,Proj_Mat)
+                Projected_tri.color = Clip_tri.color
 
-                View_tri = Matrix_3D.MatTriMul(tri,View_Mat)
-                View_tri.color = tri.color
+                #Scaling the triangles
+                Projected_tri.v0.x += 1.0
+                Projected_tri.v1.x += 1.0
+                Projected_tri.v2.x += 1.0
+                Projected_tri.v0.y += 1.0
+                Projected_tri.v1.y += 1.0
+                Projected_tri.v2.y += 1.0
 
-                for Clip_tri in Znear_Plane.clip_triangle(View_tri):
-
-                    #Projecting the Triangles
-                    Projected_tri = Matrix_3D.MatTriMul(Clip_tri,Proj_Mat)
-                    Projected_tri.color = Clip_tri.color
-
-                    #Scaling the triangles
-                    Projected_tri.v0.x += 1.0
-                    Projected_tri.v1.x += 1.0
-                    Projected_tri.v2.x += 1.0
-                    Projected_tri.v0.y += 1.0
-                    Projected_tri.v1.y += 1.0
-                    Projected_tri.v2.y += 1.0
-
-                    Projected_tri.v0.x *= 0.5 * SCREEN_HEIGHT
-                    Projected_tri.v0.y *= 0.5 * SCREEN_WIDTH
-                    Projected_tri.v1.x *= 0.5 * SCREEN_HEIGHT
-                    Projected_tri.v1.y *= 0.5 * SCREEN_WIDTH
-                    Projected_tri.v2.x *= 0.5 * SCREEN_HEIGHT
-                    Projected_tri.v2.y *= 0.5 * SCREEN_WIDTH
-                    
-                    TriangleToClipList.append(Projected_tri)
-            
-        # for tri in TriangleToClipList:
-        #     tri.order = (tri.v0.z + tri.v1.z +tri.v2.z)/3
-        #     tri.v0.y = SCREEN_HEIGHT - tri.v0.y
-        #     tri.v1.y = SCREEN_HEIGHT - tri.v1.y
-        #     tri.v2.y = SCREEN_HEIGHT - tri.v2.y
+                Projected_tri.v0.x *= 0.5 * SCREEN_HEIGHT
+                Projected_tri.v0.y *= 0.5 * SCREEN_WIDTH
+                Projected_tri.v1.x *= 0.5 * SCREEN_HEIGHT
+                Projected_tri.v1.y *= 0.5 * SCREEN_WIDTH
+                Projected_tri.v2.x *= 0.5 * SCREEN_HEIGHT
+                Projected_tri.v2.y *= 0.5 * SCREEN_WIDTH
+                
+                Triangles.append(Projected_tri)  
         
-        # TriangleToClipList.sort(key=lambda tri: tri.order , reverse=True)
-
-        for plane in Cliping_Planes:
-            clipped_triangles = []
-            for tri in TriangleToClipList:
-                clipped_triangles.extend(plane.clip_triangle(tri))
-            TriangleToClipList = clipped_triangles  # Update the list with the clipped triangles so that they can be clipped against remaining planes
-
-        TriangleToRasterList.extend(TriangleToClipList)
-
-    for tri in TriangleToRasterList:
+    for plane in Cliping_Planes:
+        clipped_triangles = []
+        for tri in Triangles:
+            clipped_triangles.extend(plane.clip_triangle(tri))
+        Triangles = clipped_triangles  # Update the list with the clipped triangles so that they can be clipped against remaining planes
+             
+    for tri in Triangles:
         tri.order = (tri.v0.z + tri.v1.z +tri.v2.z)/3
         tri.v0.y = SCREEN_HEIGHT - tri.v0.y
         tri.v1.y = SCREEN_HEIGHT - tri.v1.y
         tri.v2.y = SCREEN_HEIGHT - tri.v2.y
 
-    TriangleToRasterList.sort(key=lambda tri: tri.order , reverse=True)
+    Triangles.sort(key=lambda tri: tri.order , reverse=True)
 
-    for tri in TriangleToRasterList:
+    for tri in Triangles:
     #Drawing the Triangles on the Screen
         if wire_render == False:    
             pygame.draw.polygon(screen,  tri.color,

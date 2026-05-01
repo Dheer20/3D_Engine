@@ -54,6 +54,8 @@ class Vector():
     
     def __mul__(self,other: float)-> 'Vector':
         return Vector(self.x * other ,self.y * other ,self.z * other)
+    
+    __rmul__ = __mul__
 
     def __pow__(self,other:'Vector')-> float: #DOT PRODUCT
         return self.x*other.x+self.y*other.y+self.z*other.z
@@ -64,7 +66,7 @@ class Vector():
 
     def __repr__(self):
         return f"Vector(x={self.x}, y={self.y}, z={self.z}, w={self.w})"
- 
+
 class Triangle():
     def __init__(self, v0=(1,1,1), v1=(2,2,2), v2=(3,3,3) ,color=None ,order=None)  -> None:
         self.v0 = Vector(*v0)
@@ -72,10 +74,17 @@ class Triangle():
         self.v2 = Vector(*v2)
         self.color = color
         self.order = order
+        self.normal = None
     
     def GetColor(self,shadow : tuple[int] ,highlight : tuple[int],intensity : float) -> None:
         self.color = tuple(round(a+(b-a)*intensity,3) for a,b in zip(shadow,highlight))
 
+    def compute_normal(self):
+        line1 = self.v1 - self.v0
+        line2 = self.v2 - self.v0
+        self.normal = line1 @ line2
+        self.normal.Normalize()
+            
     def __repr__(self):
         return f"v0 = {self.v0}, v1 = {self.v1}, v2 = {self.v2}"
 
@@ -302,6 +311,49 @@ class Plane():
         else:
             print(f"Unexpected number of inside points: {count_inside}")
             return [triangle]
+
+#_____~_____RAYCASTING_____~_____#
+
+def screen_to_ray(mouse_x,mouse_y,screen_w,screen_h,camera_pos,look_dir,right,true_up,fov):
+    # Convert mouse x,y to NDC(Normalized Device Coordinates)
+    ndc_x = 2 * (mouse_x / screen_w) - 1
+    ndc_y = 1 - 2 * (mouse_y / screen_h)
+    
+    # Get View Coordinates by scaling by FOV and aspect ratio
+    aspect = screen_w/screen_h
+    tan_half_fov = m.tan(m.radians(fov/2.0))
+    view_x = ndc_x * aspect * tan_half_fov
+    view_y = ndc_y * tan_half_fov
+
+    # Converting view coordinates to world space direction
+    ray_dir = look_dir + view_x * right + view_y * true_up
+    ray_dir.Normalize()
+
+    return(camera_pos,ray_dir)
+
+def ray_triangle_intersect(ray_position,ray_direction,triangle):
+    EPSILON = 1e-8
+    edge1 = triangle.v1 - triangle.v0
+    edge2 = triangle.v2 - triangle.v0
+
+    h = ray_direction @ edge2
+    a = edge1 ** h 
+    if abs(a) < EPSILON:
+        return None # No intersection, ray is parallel to triangle
+    
+    f = 1.0 / a
+    s = ray_position - triangle.v0
+    u = f * (s ** h)
+    if u < 0.0 or u > 1.0:
+        return None # No intersection, point is outside triangle
+
+    q = s @ edge1
+    v = f * (ray_direction ** q)
+    if v < 0.0 or u + v > 1.0:
+        return None # No intersection, point is outside triangle
+    
+    t = f * (edge2 ** q)
+    return t if t > EPSILON else None # Intersection point is in front of ray origin 
 
 if __name__ == '__main__':
 
