@@ -88,17 +88,18 @@ pygame.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.event.set_grab(True)
 pygame.display.set_caption("3D Engine")
-pygame.mouse.set_visible(True)
+pygame.mouse.set_visible(False)
 clock=pygame.time.Clock()
 
 tri1 = Triangle((-4,-4,0),(0,4,0),(4,-4,0))
 Cube_3D = Mesh_3D((tri1,tri1))
 
 new_world = PhysicsWorld(GRAVITY)
-new_world.add_objects([SceneObject(Cube, Vector(0,4,7), Vector(1,1,1), Vector(0,0,0)),
-                       SceneObject(Cube, Vector(-4,2,6), Vector(1,1,1), Vector(0,0,0)),
-                       SceneObject(Cube, Vector(-4,9,6), Vector(1,1.3,1), Vector(0,0,0)),
-                       SceneObject(Cylinder, Vector(3,20,20), Vector(2,3,2), Vector(0,0,3))])
+new_world.add_objects([SceneObject(Cube, Vector(-5,9,7), Vector(1,1,1), Vector(1,0,0)),
+                       SceneObject(Cube, Vector(-4,15,6), Vector(1,1.3,1), Vector(0,0,0)),
+                       SceneObject(Cube, Vector(-2,20,6), Vector(1,1.3,1), Vector(0,0,0)),
+                       SceneObject(Cube, Vector(-5,25,6), Vector(1,1.3,1), Vector(0,0,0)),
+                       SceneObject(Sphere, Vector(3,10,20), Vector(3,3,3), Vector(-3,0,-5))])
 
 # Engine Update Loop
 while True:
@@ -312,7 +313,11 @@ while True:
                                 (tri.v1.x,tri.v1.y),
                                 (tri.v2.x,tri.v2.y)),LINE_THICKNESS)
                 
-            
+    
+    center_x = SCREEN_WIDTH // 2
+    center_y = SCREEN_HEIGHT // 2
+
+    pygame.mouse.set_pos((center_x, center_y))
     pygame.display.update()
     
     # Setting Max FPS
