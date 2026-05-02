@@ -54,6 +54,8 @@ CAMERA_ACCELERATION = 40
 CAMERA_FRICTION = 0.95
 SHADOW = hex_to_rgb("#1B1767")
 HIGHLIGHT = hex_to_rgb("#03C5CF")
+SHADOW_SEL    = hex_to_rgb("#280A3C")
+HIGHLIGHT_SEL = hex_to_rgb("#FF50C8")
 WALKING_VELOCITY = 0
 WALKING_ACCELERATION = 60
 WALKING_FRICTION = 0.90
@@ -262,7 +264,7 @@ while True:
                                            camera_3D,look_dir,right,up,FOV)
         
         sel_obj,sel_pt = raycast(position,direction,world_tris)
-
+        new_world.selected = sel_obj
         hit_ground = None
 
         if sel_obj is None:
@@ -294,7 +296,10 @@ while True:
             #Lighting
             Illumination_dp = tri.normal ** light_dir
             if Illumination_dp < 0 : Illumination_dp = 0
-            tri.GetColor(SHADOW,HIGHLIGHT,Illumination_dp)
+            if tri.object == new_world.selected:
+                tri.GetColor(SHADOW_SEL,HIGHLIGHT_SEL,Illumination_dp)  
+            else:
+                tri.GetColor(SHADOW,HIGHLIGHT,Illumination_dp)
 
             View_tri = Matrix_3D.MatTriMul(tri,View_Mat)
             View_tri.color = tri.color

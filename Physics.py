@@ -74,6 +74,7 @@ class PhysicsWorld():
         self.bounce = bounce if bounce is not None else BOUNCE
         self.sleep_vel = sleep_vel if sleep_vel is not None else SLEEP_VEL
         self.lateral_friction = lateral_friction if lateral_friction is not None else LATERAL_FRICTION
+        self.selected = None
     
     def add_object(self,obj: SceneObject):
         self.objects.append(obj)
