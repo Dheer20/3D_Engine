@@ -75,6 +75,7 @@ class PhysicsWorld():
         self.sleep_vel = sleep_vel if sleep_vel is not None else SLEEP_VEL
         self.lateral_friction = lateral_friction if lateral_friction is not None else LATERAL_FRICTION
         self.selected = None
+        self.mode = None
     
     def add_object(self,obj: SceneObject):
         self.objects.append(obj)
@@ -84,7 +85,7 @@ class PhysicsWorld():
 
     def step(self,dt):
         for obj in self.objects:
-            
+            if self.selected == obj and self.mode == "GRAB" : continue 
             if not obj.on_ground:
                 # Applying gravity to vertical velocity
                 obj.velocity.y += self.gravity * dt

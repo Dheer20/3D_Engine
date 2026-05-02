@@ -63,6 +63,7 @@ STRAFING_VELOCITY = 0
 STRAFING_ACCELERATION = 40
 STRAFING_FRICTION = 0.90
 MOUSE_SENSITIVITY = 0.05
+GRAB_SENSITIVITY = 0.02
 GRAVITY = -10
 FOV = 90.0
 DEFAULT_DEPTH = 8.0
@@ -73,6 +74,8 @@ yaw = 0
 pitch = 0
 click_pos = None
 mouse_locked = True
+grab_plane_point = None
+grab_plane_normal = None
 
 # Loading Object Data
 
@@ -190,7 +193,35 @@ while True:
                 mouse_locked = not mouse_locked
                 pygame.event.set_grab(mouse_locked)
                 pygame.mouse.set_visible(not mouse_locked)
-        
+
+            if event.key == pygame.K_g:
+                
+                if new_world.mode != "GRAB" and not mouse_locked: 
+                    new_world.mode = "GRAB"
+                    
+                    grab_mouse_start = pygame.mouse.get_pos()
+                    grab_pos_start = new_world.selected.position
+                    new_world.selected.velocity = Vector(0,0,0)
+                    grab_plane_point = new_world.selected.position
+                    grab_plane_normal = look_dir
+                    mx, my = pygame.mouse.get_pos()
+
+                    ray_origin, ray_dir = screen_to_ray(
+                        mx, my,
+                        SCREEN_WIDTH, SCREEN_HEIGHT,
+                        camera_3D, look_dir, right, up, FOV
+                    )
+
+                    denom = grab_plane_normal ** ray_dir
+
+                    if abs(denom) > 1e-6:
+                        t = ((grab_plane_point - ray_origin) ** grab_plane_normal) / denom
+                        hit = ray_origin + ray_dir * t
+
+                        grab_offset = new_world.selected.position - hit
+                else : new_world.mode = None
+                
+
             if event.key == pygame.K_HOME:
                 camera_3D = Vector(0,0,0)
                 CAMERA_VELOCITY_Y = 0
@@ -236,6 +267,24 @@ while True:
 
     View_Mat , right = Matrix_3D.View_for_CameraPointAt(camera_3D,target,up)
 
+    if new_world.mode == "GRAB" and new_world.selected is not None:
+        mx, my = pygame.mouse.get_pos()
+
+        ray_origin, ray_dir = screen_to_ray(
+            mx, my,
+            SCREEN_WIDTH, SCREEN_HEIGHT,
+            camera_3D, look_dir, right, up, FOV
+        )
+
+        denom = grab_plane_normal ** ray_dir
+
+        if abs(denom) > 1e-6:
+            t = ((grab_plane_point - ray_origin) ** grab_plane_normal) / denom
+            if t > 0:
+                hit = ray_origin + ray_dir * t
+                new_world.selected.position = hit + grab_offset
+
+
     new_world.step(elapsed_time)
 
     WALKING_DISPLACEMENT = look_dir * (WALKING_VELOCITY * elapsed_time)
@@ -258,6 +307,7 @@ while True:
 
     # Rasterization Pipeline
     if click_pos is not None:
+        
         x,y = click_pos if not mouse_locked else (SCREEN_WIDTH//2,SCREEN_HEIGHT//2)
         position,direction = screen_to_ray(x,y,
                                            SCREEN_WIDTH,SCREEN_HEIGHT,
